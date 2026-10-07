@@ -1,0 +1,373 @@
+<title>CJ1 Signal Path</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: calm single column, generous space. Plots sit on charcoal "screens" inside quiet cards so the signal colours stay readable in both themes. */
+:root{
+  --bg:#ffffff; --card:#ffffff; --ink:#171717; --dim:#666666; --line:#ebebeb; --accent:#0070f3; --soft:#fafafa;
+  --edge:0 0 0 1px rgba(0,0,0,.08),0 2px 2px rgba(0,0,0,.04);
+  --speech:#0b93ad; --noise:#d6397f; --mix:#3a4352; --clean:#14925a; --amber:#b9770e;
+  --bar:rgba(255,255,255,.85);
+  --display:"Geist","Helvetica Neue",system-ui,sans-serif;
+  --body:"Geist","Helvetica Neue",system-ui,sans-serif;
+  --mono:"Geist Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{font-feature-settings:"liga";background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--body);padding-inline:16px;padding-block:0 80px}
+.wrap{max-width:860px;margin-inline:auto}
+header{padding-block:64px 28px}
+.eyebrow{font:500 13px var(--mono);color:var(--dim)}
+h1{font:600 clamp(36px,6vw,60px)/1.05 var(--display);letter-spacing:-.045em;margin:10px 0 16px;text-wrap:balance}
+.lede{max-width:60ch;color:var(--dim);font-size:18px;margin:0}
+.eq{font:400 15px/1.5 var(--mono)}
+.pipe{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
+.pipe a{flex:1 1 120px;min-width:0;text-decoration:none;color:var(--dim);background:var(--card);border:0;box-shadow:var(--edge);border-radius:8px;padding:12px 14px;font:400 13px/1.35 var(--mono)}
+.pipe a b{display:block;font:600 15px var(--display);color:var(--ink);margin-bottom:2px}
+.pipe a{transition:box-shadow .15s}
+.pipe a:hover{box-shadow:0 0 0 1px var(--ink)}
+.pipe a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bar);border-block:1px solid var(--line);margin-inline:-16px;padding:10px 16px;backdrop-filter:blur(10px)}
+.bar .wrap{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:center}
+.ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.ctl>label,.ctl>.lab{font:500 13px var(--body);color:var(--dim)}
+.chips{display:flex;gap:2px;flex-wrap:wrap;background:var(--soft);box-shadow:var(--edge);padding:3px;border-radius:9px}
+.chip,.btn{font:500 13px var(--body);color:var(--ink);background:transparent;border:0;padding:6px 12px;cursor:pointer;border-radius:8px}
+.chip[aria-pressed="true"]{background:var(--card);box-shadow:var(--edge)}
+.btn{background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:6px}
+.chip:hover{background:var(--line)}.btn:hover{opacity:.85}
+.chip:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{accent-color:var(--accent);width:150px;max-width:100%}
+.val{font:500 13px var(--mono);min-width:5ch;font-variant-numeric:tabular-nums}
+main{padding-block:48px 0;display:grid;gap:28px}
+.stage{background:var(--card);box-shadow:var(--edge);border-radius:12px;padding:clamp(20px,4vw,36px);scroll-margin-top:72px}
+.tag{font:500 12px var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+h2{font:600 clamp(24px,3.6vw,32px)/1.15 var(--display);letter-spacing:-.035em;margin:6px 0 14px;text-wrap:balance}
+.stage p{max-width:62ch;margin:0 0 14px}
+.stage p.dim{color:var(--dim)}
+.cols{display:grid;gap:14px;margin-block:4px 18px}
+.eqbox{background:var(--soft);box-shadow:var(--edge);border-radius:8px;padding:14px 16px;display:grid;gap:6px;max-width:62ch}
+.eqbox .eq{overflow-wrap:anywhere}
+.eqbox small{font:400 13px/1.45 var(--body);color:var(--dim)}
+.screen{margin-block:10px;display:block}
+.screen canvas{display:block;width:100%;height:auto;max-width:100%;background:#0b0f16;border-radius:8px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font:400 13px var(--body);color:var(--dim);margin:8px 0 4px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.readout{display:flex;flex-wrap:wrap;gap:10px 36px;margin-block:14px 4px}
+.readout div{font:400 13px var(--body);color:var(--dim)}
+.readout b{display:block;font:600 26px/1.15 var(--display);letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums}
+.readout b.good{color:var(--clean)}
+.slide{display:flex;gap:12px;align-items:center;margin-block:10px}
+.slide input{flex:1;width:auto;min-width:0}
+.note{background:var(--soft);box-shadow:var(--edge);border-radius:8px;padding:14px 16px;color:var(--dim);max-width:62ch;margin-top:14px}
+.note b{color:var(--ink);font-weight:600}
+footer{margin-top:40px;color:var(--dim);font:400 13px var(--mono)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Intelligent noise reduction &amp; speech enhancement</div>
+  <h1>Signal path</h1>
+  <p class="lede">Follow one noisy voice clip through the whole system. Every picture below is computed live in your browser from a synthetic voice and a noise source you choose, using the same STFT, mask and inverse STFT steps the denoiser will use.</p>
+  <nav class="pipe" aria-label="Pipeline">
+    <a href="#s1"><b>Capture</b>y(t) = s(t) + n(t)</a>
+    <a href="#s2"><b>Spectrum</b>Fourier transform</a>
+    <a href="#s3"><b>Window</b>STFT, frame by frame</a>
+    <a href="#s4"><b>Split</b>magnitude | phase</a>
+    <a href="#s5"><b>Mask</b>keep speech bins</a>
+    <a href="#s6"><b>Rebuild</b>inverse STFT</a>
+  </nav>
+</header>
+</div>
+
+<div class="bar"><div class="wrap">
+  <div class="ctl"><span class="lab" id="lnoise">Noise</span>
+    <div class="chips" role="group" aria-labelledby="lnoise" id="noiseChips">
+      <button class="chip" data-v="white" aria-pressed="true">White</button>
+      <button class="chip" data-v="cafe" aria-pressed="false">Cafe</button>
+      <button class="chip" data-v="traffic" aria-pressed="false">Traffic</button>
+      <button class="chip" data-v="hum" aria-pressed="false">Hum</button>
+    </div></div>
+  <div class="ctl"><label for="snr">SNR</label><input id="snr" type="range" min="-5" max="20" step="1" value="5"><span class="val" id="snrV">5 dB</span></div>
+  <div class="ctl"><span class="lab" id="lwin">Window</span>
+    <div class="chips" role="group" aria-labelledby="lwin" id="winChips">
+      <button class="chip" data-v="256" aria-pressed="false">256</button>
+      <button class="chip" data-v="512" aria-pressed="true">512</button>
+      <button class="chip" data-v="1024" aria-pressed="false">1024</button>
+    </div></div>
+</div></div>
+
+<div class="wrap"><main>
+
+<section class="stage" id="s1">
+  <div class="tag">Stage 01 / time domain</div>
+  <h2>Capture the mixture</h2>
+  <div class="cols">
+    <div>
+      <p>A microphone cannot tell voice from noise. It records their sum, one pressure value at a time, 16,000 times a second. The system only ever receives the bottom trace. The top two traces exist here so you can see what it has to separate.</p>
+      <p class="dim">Lower the SNR slider and the bottom trace stops looking like the voice at all. That is the situation the model trains on.</p>
+    </div>
+    <div class="eqbox"><div class="eq">y(t) = s(t) + n(t)</div><small>y is the noisy recording, s the clean speech, n the noise. The goal is to recover s from y alone.</small></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--speech)"></i>Clean speech s(t)</span><span><i style="background:var(--noise)"></i>Noise n(t)</span><span><i style="background:var(--mix)"></i>Recording y(t)</span></div>
+  <div class="screen"><canvas id="c-s" width="1000" height="130"></canvas></div>
+  <div class="screen"><canvas id="c-n" width="1000" height="130"></canvas></div>
+  <div class="screen"><canvas id="c-y" width="1000" height="150"></canvas></div>
+  <div class="readout"><div>Input SNR<b id="snrIn">-</b></div><div>Sample rate<b>16 kHz</b></div><div>Samples<b>32,000</b></div></div>
+</section>
+
+<section class="stage" id="s2">
+  <div class="tag">Stage 02 / frequency domain</div>
+  <h2>Look at the whole clip's spectrum</h2>
+  <div class="cols">
+    <div>
+      <p>The Fourier transform rewrites the clip as a sum of pure tones. Because it is linear, the voice and the noise stay separate in the sum, which is what makes filtering possible.</p>
+      <p class="dim">The voice shows as a comb of harmonics, spaced by the pitch (about 120 Hz), with the strongest peaks near the vowel formants. Broadband noise lifts the floor everywhere. Hum adds sharp spikes. The shaded band is the 300 to 3400 Hz range where most speech energy lives.</p>
+    </div>
+    <div class="eqbox"><div class="eq">Y(ω) = S(ω) + N(ω)</div><small>One transform of the entire clip. It says which frequencies are present, but not when.</small></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--speech)"></i>|S(ω)|</span><span><i style="background:var(--noise)"></i>|N(ω)|</span><span><i style="background:var(--mix)"></i>|Y(ω)|</span></div>
+  <div class="screen"><canvas id="c-spec" width="1000" height="300"></canvas></div>
+</section>
+
+<section class="stage" id="s3">
+  <div class="tag">Stage 03 / time and frequency together</div>
+  <h2>Slide a window along the clip</h2>
+  <div class="cols">
+    <div>
+      <p>Speech changes every few tens of milliseconds, so one transform of the whole clip hides too much. The STFT cuts the clip into short overlapping frames, fades each frame in and out with a Hann window, and takes a Fourier transform of each one.</p>
+      <p class="dim">Drag the slider or press Scan. The amber trace is the frame being analysed. Its spectrum appears in the middle plot, and its column lights up in the spectrogram below. Try the 256 and 1024 window sizes in the top bar to see the time versus frequency trade-off.</p>
+    </div>
+    <div class="eqbox"><div class="eq">X(ω,τ) = Σ x[n] · w[n−τ] · e^(−jωn)</div><small>w is the Hann window, τ is the frame position. Hop between frames is a quarter window, so each sample is covered by four frames.</small></div>
+  </div>
+  <div class="slide"><button class="btn" id="scan">Scan</button><input id="frame" type="range" min="0" max="100" value="40" aria-label="Frame position"><span class="val" id="frameV"></span></div>
+  <div class="legend"><span><i style="background:var(--mix)"></i>Recording</span><span><i style="background:var(--amber)"></i>Windowed frame</span></div>
+  <div class="screen"><canvas id="c-scope" width="1000" height="170"></canvas></div>
+  <div class="legend"><span><i style="background:var(--mix)"></i>Frame of y</span><span><i style="background:var(--speech)"></i>Frame of s</span><span><i style="background:var(--noise)"></i>Frame of n</span></div>
+  <div class="screen"><canvas id="c-frame" width="1000" height="230"></canvas></div>
+  <div class="screen"><canvas id="c-stft" width="1000" height="300"></canvas></div>
+  <div class="readout"><div>Window<b id="winMs">-</b></div><div>Bin spacing<b id="binHz">-</b></div><div>Frames<b id="nFr">-</b></div><div>Bins per frame<b id="nBin">-</b></div></div>
+</section>
+
+<section class="stage" id="s4">
+  <div class="tag">Stage 04 / complex to real</div>
+  <h2>Split magnitude from phase</h2>
+  <div class="cols">
+    <div>
+      <p>Each STFT cell is a complex number. Its length is how loud that frequency is in that frame. Its angle is where in its cycle the tone sits. Noise shows up clearly in the magnitude picture, so the network is trained on magnitude only.</p>
+      <p class="dim">The phase picture is coloured by angle and dimmed where there is no energy. It looks like static, which is why it is hard to predict. The system keeps it unchanged and reattaches it at the end.</p>
+    </div>
+    <div class="eqbox"><div class="eq">X = |X| · e^(j∠X)</div><small>Network input: |X| (log scale, normalised). Stored for later: ∠X.</small></div>
+  </div>
+  <div class="screen"><canvas id="c-mag" width="1000" height="280"></canvas></div>
+  <div class="screen"><canvas id="c-phase" width="1000" height="280"></canvas></div>
+</section>
+
+<section class="stage" id="s5">
+  <div class="tag">Stage 05 / the enhancement step</div>
+  <h2>Decide which cells are speech</h2>
+  <div class="cols">
+    <div>
+      <p>For every time-frequency cell, a gain between 0 and 1 says how much of that cell to keep. Cells dominated by voice get a gain near 1. Cells dominated by noise get a gain near 0. Multiplying the noisy magnitude by this mask removes the noise.</p>
+      <p class="dim">The classic Wiener filter computes this gain from the true speech and noise power. That is the mask shown here. It needs s and n, which a real recording does not give you. The denoising autoencoder learns to predict the same mask from the noisy magnitude alone, after training on thousands of clean and noisy pairs.</p>
+    </div>
+    <div class="eqbox"><div class="eq">M = |S|² / (|S|² + |N|²)</div><div class="eq">|Ŝ| = M · |Y|</div><small>Oracle mask for this demo. In the real system the DAE outputs M̂ and it is applied the same way.</small></div>
+  </div>
+  <div class="screen"><canvas id="c-mask" width="1000" height="280"></canvas></div>
+  <div class="screen"><canvas id="c-enh" width="1000" height="280"></canvas></div>
+</section>
+
+<section class="stage" id="s6">
+  <div class="tag">Stage 06 / back to sound</div>
+  <h2>Rebuild the waveform</h2>
+  <div class="cols">
+    <div>
+      <p>The cleaned magnitude is paired with the stored noisy phase. Each frame goes through an inverse Fourier transform, is windowed again, and the overlapping frames are added together. The result is a clean waveform you can play.</p>
+      <p class="dim">Compare the green trace with the clean cyan one. At low SNR the leftover error comes mostly from the reused noisy phase, which is the main limit the proposal flags under audio reconstruction quality.</p>
+    </div>
+    <div class="eqbox"><div class="eq">ŝ[n] = OLA( IFFT( |Ŝ| · e^(j∠Y) ) )</div><small>OLA is overlap-add, divided by the summed squared window so the level stays exact.</small></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--speech)"></i>True clean speech</span><span><i style="background:var(--clean)"></i>Enhanced output</span></div>
+  <div class="screen"><canvas id="c-out" width="1000" height="190"></canvas></div>
+  <div class="readout"><div>SNR before<b id="r0">-</b></div><div>SNR after<b id="r1" class="good">-</b></div><div>Improvement<b id="r2" class="good">-</b></div></div>
+  <div class="slide" style="flex-wrap:wrap"><button class="btn" data-play="y">Play noisy</button><button class="btn" data-play="out">Play enhanced</button><button class="btn" data-play="s">Play clean</button></div>
+  <div class="note"><b>Next in the build:</b> the autoencoder replaces the oracle mask. Same STFT in, same inverse STFT out, with the Keras model predicting M̂ from |Y| only.</div>
+</section>
+
+</main>
+<footer>CJ1 / synthetic voice, 16 kHz, Hann window, hop = window / 4, dynamic range 70 dB</footer>
+</div>
+
+<script>
+const SR=16000,DUR=2,N=SR*DUR,R=70,L=56,B=26;
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C={speech:'#4de8ff',noise:'#ff6fae',mix:'#e8f3ff',clean:'#6fe3a2',amber:'#ffc24d',dim:'#8b9bb0',line:'#222c3a',panel:'#0b0f16'};
+const mono='500 21px "Geist Mono",ui-monospace,monospace';
+
+/* ---------- DSP ---------- */
+function fft(re,im,inv){const n=re.length;
+  for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+  for(let len=2;len<=n;len<<=1){const a=2*Math.PI/len*(inv?1:-1),wr=Math.cos(a),wi=Math.sin(a),h=len>>1;
+    for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<h;k++){const p=i+k,q=p+h,xr=re[q]*cr-im[q]*ci,xi=re[q]*ci+im[q]*cr;
+      re[q]=re[p]-xr;im[q]=im[p]-xi;re[p]+=xr;im[p]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}
+  if(inv)for(let i=0;i<n;i++){re[i]/=n;im[i]/=n}}
+const hann=n=>Float64Array.from({length:n},(_,i)=>.5-.5*Math.cos(2*Math.PI*i/n));
+function stft(x,win){const hop=win/4,pad=win/2,len=x.length,nf=Math.floor((len+2*pad-win)/hop)+1,nb=win/2+1,w=hann(win);
+  const re=[],im=[],mag=[],br=new Float64Array(win),bi=new Float64Array(win);
+  for(let f=0;f<nf;f++){for(let i=0;i<win;i++){const k=f*hop+i-pad;br[i]=(k>=0&&k<len?x[k]:0)*w[i];bi[i]=0}
+    fft(br,bi,false);const R_=new Float32Array(nb),I_=new Float32Array(nb),M_=new Float32Array(nb);
+    for(let k=0;k<nb;k++){R_[k]=br[k];I_[k]=bi[k];M_[k]=Math.hypot(br[k],bi[k])}
+    re.push(R_);im.push(I_);mag.push(M_)}
+  return{re,im,mag,nf,nb,hop,pad,win}}
+function istft(re,im,win,len){const hop=win/4,pad=win/2,nb=win/2+1,w=hann(win),nf=re.length;
+  const out=new Float64Array(len+2*pad),nrm=new Float64Array(len+2*pad),br=new Float64Array(win),bi=new Float64Array(win);
+  for(let f=0;f<nf;f++){for(let k=0;k<nb;k++){br[k]=re[f][k];bi[k]=im[f][k]}
+    for(let k=1;k<win/2;k++){br[win-k]=re[f][k];bi[win-k]=-im[f][k]}
+    fft(br,bi,true);for(let i=0;i<win;i++){out[f*hop+i]+=br[i]*w[i];nrm[f*hop+i]+=w[i]*w[i]}}
+  const y=new Float32Array(len);for(let i=0;i<len;i++){const n=nrm[i+pad];y[i]=n>1e-3?out[i+pad]/n:0}return y}
+const rmsOf=x=>Math.sqrt(x.reduce((a,v)=>a+v*v,0)/x.length);
+const unit=x=>{const r=rmsOf(x);return x.map(v=>v/r)};
+const snrDb=(s,x)=>{let a=0,b=0;for(let i=0;i<s.length;i++){a+=s[i]*s[i];const d=s[i]-x[i];b+=d*d}return 10*Math.log10(a/b)};
+const dB=m=>20*Math.log10(m+1e-7);
+const clamp01=v=>v<0?0:v>1?1:v;
+
+/* ---------- synthetic signals ---------- */
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-12))*Math.cos(2*Math.PI*r())}
+function makeSpeech(){
+  const syl=[[.25,700,1200],[.55,350,2300],[.85,550,1500],[1.2,400,900],[1.5,650,1800],[1.78,300,2100]],x=new Float32Array(N),r=rng(3);
+  let ph=0,prev=0,prev2=0;
+  for(let i=0;i<N;i++){const t=i/SR;let sw=0,f1=0,f2=0;
+    for(const[c,a,b]of syl){const w=Math.exp(-(((t-c)/.085)**2));sw+=w;f1+=w*a;f2+=w*b}
+    const E=Math.min(1,sw);if(sw>1e-4){f1/=sw;f2/=sw}else{f1=500;f2=1500}
+    const f0=118+22*Math.sin(2*Math.PI*.9*t)+9*Math.sin(2*Math.PI*2.3*t);ph+=2*Math.PI*f0/SR;
+    let v=0;for(let k=1;k*f0<4800;k++){const fk=k*f0;v+=(Math.exp(-(((fk-f1)/150)**2))+.6*Math.exp(-(((fk-f2)/220)**2))+.3*Math.exp(-(((fk-2900)/320)**2))+.012)*Math.sin(k*ph)}
+    x[i]=v*E;
+    if(t>.98&&t<1.1){const g=Math.sin(Math.PI*(t-.98)/.12),w=gauss(r),h=w-2*prev+prev2;prev2=prev;prev=w;x[i]+=h*g*9}}
+  return unit(x)}
+const SPEECH=makeSpeech();
+const noiseCache={};
+function makeNoise(type){if(noiseCache[type])return noiseCache[type];const r=rng(11),x=new Float32Array(N);
+  if(type==='white'){for(let i=0;i<N;i++)x[i]=gauss(r)}
+  else if(type==='cafe'){let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;for(let i=0;i<N;i++){const w=gauss(r);b0=.99886*b0+w*.0555179;b1=.99332*b1+w*.0750759;b2=.969*b2+w*.153852;b3=.8665*b3+w*.3104856;b4=.55*b4+w*.5329522;b5=-.7616*b5-w*.016898;x[i]=b0+b1+b2+b3+b4+b5+b6+w*.5362;b6=w*.115926}
+    for(let i=0;i<N;i++)x[i]*=.5+.5*Math.sin(2*Math.PI*3.1*i/SR+Math.sin(i/2500))}
+  else if(type==='traffic'){let b=0,hp=0,pl=0;for(let i=0;i<N;i++){b=.995*b+gauss(r)*.1;const t=i/SR;x[i]=b+.6*Math.sin(2*Math.PI*(62+10*Math.sin(2*Math.PI*.4*t))*t)}}
+  else{for(let i=0;i<N;i++){const t=i/SR;x[i]=Math.sin(2*Math.PI*60*t)+.6*Math.sin(2*Math.PI*120*t)+.4*Math.sin(2*Math.PI*180*t)+.25*Math.sin(2*Math.PI*300*t)+.15*gauss(r)}}
+  return noiseCache[type]=unit(x)}
+
+/* ---------- drawing ---------- */
+const LUT_MAG=lut([[0,[3,5,14]],[.28,[9,26,92]],[.55,[10,120,200]],[.8,[77,232,255]],[1,[255,255,255]]]);
+const LUT_MASK=lut([[0,[4,7,13]],[.4,[52,24,120]],[.75,[40,200,160]],[1,[234,255,244]]]);
+function lut(stops){const o=new Uint8ClampedArray(768);for(let i=0;i<256;i++){const v=i/255;let a=stops[0],b=stops[stops.length-1];
+  for(let k=0;k<stops.length-1;k++)if(v>=stops[k][0]&&v<=stops[k+1][0]){a=stops[k];b=stops[k+1];break}
+  const t=(v-a[0])/((b[0]-a[0])||1);for(let c=0;c<3;c++)o[i*3+c]=a[1][c]+(b[1][c]-a[1][c])*t}return o}
+function hsv(h,s,v,o){const i=Math.floor(h/60)%6,f=h/60-Math.floor(h/60),p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+  const m=[[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i];o[0]=m[0]*255;o[1]=m[1]*255;o[2]=m[2]*255}
+function setup(cv){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);return x}
+function frameAxes(x,W,H,xt,yt,xl){x.font=mono;x.fillStyle=C.dim;x.strokeStyle=C.line;x.lineWidth=1;
+  x.textAlign='center';x.textBaseline='top';for(const[f,l]of xt){const px=L+f*(W-L);x.fillText(l,Math.min(Math.max(px,L+8),W-14),H-B+4);x.beginPath();x.moveTo(px,H-B);x.lineTo(px,H-B+4);x.stroke()}
+  x.textAlign='right';x.textBaseline='middle';for(const[f,l]of yt){const py=(H-B)*(1-f);x.fillText(l,L-8,Math.min(Math.max(py,10),H-B-8));x.beginPath();x.moveTo(L-4,py);x.lineTo(L,py);x.stroke()}}
+const TT=[[0,'0'],[.25,'.5s'],[.5,'1s'],[.75,'1.5s'],[1,'2s']],FT=[[0,'0'],[.25,'2k'],[.5,'4k'],[.75,'6k'],[1,'8k']];
+function caption(x,t,c){x.font=mono;x.textAlign='left';x.textBaseline='top';x.fillStyle=c;x.fillText(t,L+12,8)}
+
+function wave(cv,series,o={}){const x=setup(cv),W=cv.width,H=cv.height,w=W-L-6,h=H-B-6,mid=6+h/2,amp=o.amp||1;
+  x.strokeStyle=C.line;x.lineWidth=1;x.beginPath();x.moveTo(L,mid);x.lineTo(W-6,mid);x.stroke();
+  x.setLineDash([3,5]);x.beginPath();for(const k of[-.5,.5]){x.moveTo(L,mid+k*h/2);x.lineTo(W-6,mid+k*h/2)}x.stroke();x.setLineDash([]);
+  if(o.hl){const a=L+o.hl.i0/N*w,b=L+o.hl.i1/N*w;x.fillStyle='rgba(255,194,77,.12)';x.fillRect(a,6,b-a,h)}
+  for(const s of series){x.strokeStyle=s.c;x.lineWidth=1.4;x.globalAlpha=s.a||1;x.beginPath();const d=s.d,n=d.length;
+    for(let px=0;px<w;px++){const i0=Math.floor(px/w*n),i1=Math.max(i0+1,Math.floor((px+1)/w*n));let lo=1e9,hi=-1e9;for(let i=i0;i<i1;i++){const v=d[i];if(v<lo)lo=v;if(v>hi)hi=v}
+      x.moveTo(L+px+.5,mid-hi/amp*h/2);x.lineTo(L+px+.5,mid-lo/amp*h/2)}x.stroke();x.globalAlpha=1}
+  if(o.over){const{i0,i1,w:ww,d}=o.over;x.strokeStyle=C.amber;x.lineWidth=1.6;x.shadowColor=C.amber;x.shadowBlur=8;x.beginPath();
+    for(let i=0;i<i1-i0;i++){const idx=i0+i,v=idx>=0&&idx<N?d[idx]*ww[i]:0,px=L+(idx/N)*w,py=mid-v/amp*h/2;i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke();x.shadowBlur=0;
+    x.setLineDash([4,4]);x.strokeStyle='rgba(255,194,77,.6)';x.lineWidth=1;x.beginPath();
+    for(let i=0;i<i1-i0;i++){const idx=i0+i,px=L+(idx/N)*w,py=mid-ww[i]*h*.46;i?x.lineTo(px,py):x.moveTo(px,py)}x.stroke();x.setLineDash([])}
+  frameAxes(x,W,H,TT,[[.5,'0'],[1,'+'],[0,'−']],0);if(o.cap)caption(x,o.cap,o.capc)}
+
+function specPlot(cv,series,o){const x=setup(cv),W=cv.width,H=cv.height,pw=W-L-6,ph=H-B-6;
+  const px=f=>L+f*pw,py=v=>6+ph*(1-clamp01(v));
+  if(o.band){x.fillStyle='rgba(255,194,77,.07)';x.fillRect(px(300/8000),6,px(3400/8000)-px(300/8000),ph);x.fillStyle=C.amber;x.font=mono;x.textAlign='left';x.textBaseline='top';x.fillText('300-3400 Hz',px(300/8000)+8,10)}
+  x.strokeStyle=C.line;x.lineWidth=1;x.font=mono;x.fillStyle=C.dim;x.textAlign='right';x.textBaseline='middle';
+  for(let d=0;d<=R;d+=10){const y=py(1-d/R);x.globalAlpha=d%20?.35:1;x.beginPath();x.moveTo(L,y);x.lineTo(W-6,y);x.stroke();x.globalAlpha=1;if(d%20===0)x.fillText(d?'-'+d:'0',L-8,Math.min(Math.max(y,10),H-B-8))}
+  for(const s of series){const n=s.d.length;x.beginPath();for(let i=0;i<n;i++){const X=px(i/(n-1)),Y=py((s.d[i]-o.ref)/R+1);i?x.lineTo(X,Y):x.moveTo(X,Y)}
+    if(s.fill){x.save();x.lineTo(px(1),py(0));x.lineTo(px(0),py(0));x.closePath();x.fillStyle=s.fill;x.fill();x.restore()}
+    x.strokeStyle=s.c;x.lineWidth=s.w||1.4;x.globalAlpha=s.a||1;x.stroke();x.globalAlpha=1}
+  x.fillStyle=C.dim;x.textAlign='center';x.textBaseline='top';x.font=mono;for(const[f,l]of[[0,'0'],[.25,'2k'],[.5,'4k'],[.75,'6k'],[1,'8 kHz']])x.fillText(l,Math.min(Math.max(px(f),L+8),W-34),H-B+4);
+  x.save();x.translate(14,6+ph/2);x.rotate(-Math.PI/2);x.textBaseline='top';x.textAlign='center';x.fillText('dB',0,0);x.restore();
+  if(o.cap)caption(x,o.cap,o.capc)}
+
+function heat(frames,cv,fn){const W=cv.width-L-6,H=cv.height-B-6,off=document.createElement('canvas');off.width=W;off.height=H;
+  const ox=off.getContext('2d'),img=ox.createImageData(W,H),nb=frames[0].length,nf=frames.length,o=[0,0,0];
+  for(let y=0;y<H;y++){const b=Math.round((H-1-y)/(H-1)*(nb-1));for(let px=0;px<W;px++){const f=Math.min(nf-1,Math.floor(px/W*nf));fn(f,b,o);const k=(y*W+px)*4;img.data[k]=o[0];img.data[k+1]=o[1];img.data[k+2]=o[2];img.data[k+3]=255}}
+  ox.putImageData(img,0,0);return off}
+function showHeat(cv,off,cap,capc,cur){const x=setup(cv),W=cv.width,H=cv.height;x.drawImage(off,L,6);frameAxes(x,W,H,TT,FT);
+  if(cur!=null){const cx=L+cur*(W-L-6);x.strokeStyle=C.amber;x.lineWidth=2;x.shadowColor=C.amber;x.shadowBlur=10;x.beginPath();x.moveTo(cx,6);x.lineTo(cx,H-B);x.stroke();x.shadowBlur=0}
+  x.save();x.translate(14,6+(H-B-6)/2);x.rotate(-Math.PI/2);x.fillStyle=C.dim;x.font=mono;x.textAlign='center';x.textBaseline='top';x.fillText('Hz',0,0);x.restore();
+  x.font=mono;x.textAlign='left';x.textBaseline='top';const tw=x.measureText(cap).width;x.fillStyle='rgba(4,7,13,.7)';x.fillRect(L+8,10,tw+16,28);x.fillStyle=capc;x.fillText(cap,L+16,14)}
+const magV=(m,ref)=>clamp01((dB(m)-ref)/R+1);
+const lutFn=(l,get)=>(f,b,o)=>{const i=Math.round(get(f,b)*255)*3;o[0]=l[i];o[1]=l[i+1];o[2]=l[i+2]};
+
+/* ---------- state + pipeline ---------- */
+const st={noise:'white',snr:5,win:512};let D=null,heats={},frameIdx=40;
+function run(){
+  const s=SPEECH,n0=makeNoise(st.noise),g=Math.pow(10,-st.snr/20),n=n0.map(v=>v*g),y=new Float32Array(N);for(let i=0;i<N;i++)y[i]=s[i]+n[i];
+  const S=stft(s,st.win),Nn=stft(n,st.win),Y=stft(y,st.win),nf=Y.nf,nb=Y.nb;
+  let ref=-1e9;for(const f of Y.mag)for(const v of f){const d=dB(v);if(d>ref)ref=d}
+  const M=[],Er=[],Ei=[];
+  for(let f=0;f<nf;f++){const m=new Float32Array(nb),er=new Float32Array(nb),ei=new Float32Array(nb);
+    for(let b=0;b<nb;b++){const sp=S.mag[f][b]**2,np=Nn.mag[f][b]**2;m[b]=sp/(sp+np+1e-12);er[b]=m[b]*Y.re[f][b];ei[b]=m[b]*Y.im[f][b]}
+    M.push(m);Er.push(er);Ei.push(ei)}
+  const Emag=Er.map((r,f)=>r.map((v,b)=>Math.hypot(v,Ei[f][b]))),out=istft(Er,Ei,st.win,N);
+  D={s,n,y,S,Nn,Y,M,Emag,out,ref,nf,nb,snr0:snrDb(s,y),snr1:snrDb(s,out)};
+  const hz=SR/st.win;
+  $('snrV').textContent=st.snr+' dB';$('snrIn').textContent=D.snr0.toFixed(1)+' dB';
+  $('winMs').textContent=(st.win/SR*1000).toFixed(0)+' ms';$('binHz').textContent=hz.toFixed(1)+' Hz';$('nFr').textContent=nf;$('nBin').textContent=nb;
+  $('r0').textContent=D.snr0.toFixed(1)+' dB';$('r1').textContent=D.snr1.toFixed(1)+' dB';$('r2').textContent=(D.snr1>=D.snr0?'+':'')+(D.snr1-D.snr0).toFixed(1)+' dB';
+  const fr=$('frame');fr.max=nf-1;frameIdx=Math.min(frameIdx,nf-1);fr.value=frameIdx;
+  /* stage 1 */
+  const amp=Math.max(...y.map(Math.abs))*1.05;
+  wave($('c-s'),[{d:s,c:C.speech}],{amp,cap:'s(t)  CLEAN SPEECH',capc:C.speech});
+  wave($('c-n'),[{d:n,c:C.noise}],{amp,cap:'n(t)  NOISE',capc:C.noise});
+  wave($('c-y'),[{d:y,c:C.mix}],{amp,cap:'y(t)  WHAT THE MICROPHONE HEARS',capc:C.mix});
+  /* stage 2 */
+  const M2=900,nfft=32768,spec=a=>{const re=new Float64Array(nfft),im=new Float64Array(nfft),w=hann(N);for(let i=0;i<N;i++)re[i]=a[i]*w[i];fft(re,im,false);
+    const per=Math.floor(nfft/2/M2),o=new Float32Array(M2);for(let k=0;k<M2;k++){let p=0;for(let j=0;j<per;j++){const i=k*per+j;p+=re[i]*re[i]+im[i]*im[i]}o[k]=10*Math.log10(p/per+1e-12)}return o};
+  const sS=spec(s),sN=spec(n),sY=spec(y),ref2=Math.max(...sY);
+  specPlot($('c-spec'),[{d:sY,c:C.mix,fill:'rgba(232,243,255,.08)',w:1.2},{d:sN,c:C.noise,a:.9},{d:sS,c:C.speech}],{ref:ref2,band:true});
+  /* stage 3-6 heats */
+  heats.y=heat(Y.mag,$('c-stft'),lutFn(LUT_MAG,(f,b)=>magV(Y.mag[f][b],ref)));
+  heats.mag=heat(Y.mag,$('c-mag'),lutFn(LUT_MAG,(f,b)=>magV(Y.mag[f][b],ref)));
+  heats.phase=heat(Y.mag,$('c-phase'),(f,b,o)=>{const a=Math.atan2(Y.im[f][b],Y.re[f][b]);hsv((a+Math.PI)/(2*Math.PI)*360,.85,.08+.92*Math.pow(magV(Y.mag[f][b],ref),.9),o)});
+  heats.mask=heat(M,$('c-mask'),lutFn(LUT_MASK,(f,b)=>M[f][b]));
+  heats.enh=heat(Emag,$('c-enh'),lutFn(LUT_MAG,(f,b)=>magV(Emag[f][b],ref)));
+  showHeat($('c-mag'),heats.mag,'|Y(w,t)|  MAGNITUDE  (network input)',C.speech);
+  showHeat($('c-phase'),heats.phase,'angle Y(w,t)  PHASE  (stored, reused later)','#ff9ad0');
+  showHeat($('c-mask'),heats.mask,'M(w,t)  GAIN 0 to 1  (bright = keep)',C.clean);
+  showHeat($('c-enh'),heats.enh,'|S^(w,t)| = M x |Y|  CLEANED MAGNITUDE',C.clean);
+  wave($('c-out'),[{d:s,c:C.speech,a:.55},{d:out,c:C.clean}],{amp,cap:'s^(t)  ENHANCED OUTPUT',capc:C.clean});
+  drawFrame()}
+
+function drawFrame(){if(!D)return;const{y,s,n,Y,S,Nn,ref,nf,nb}=D,f=frameIdx,win=st.win,i0=f*Y.hop-Y.pad;
+  $('frameV').textContent=((i0+win/2)/SR).toFixed(2)+' s';
+  const amp=Math.max(...y.map(Math.abs))*1.05;
+  wave($('c-scope'),[{d:y,c:C.mix,a:.8}],{amp,hl:{i0:Math.max(0,i0),i1:Math.min(N,i0+win)},over:{i0,i1:i0+win,w:hann(win),d:y},cap:'y(t) AND THE ANALYSIS WINDOW',capc:C.mix});
+  const db=a=>Array.from(a,v=>dB(v));
+  specPlot($('c-frame'),[{d:db(Nn.mag[f]),c:C.noise,a:.85,w:1.2},{d:db(S.mag[f]),c:C.speech,w:1.4},{d:db(Y.mag[f]),c:C.mix,fill:'rgba(232,243,255,.08)',w:1.8}],{ref,cap:'SPECTRUM OF THIS ONE FRAME'});
+  showHeat($('c-stft'),heats.y,'|Y(w,t)|  SPECTROGRAM',C.speech,(f+.5)/nf)}
+
+/* ---------- controls ---------- */
+function chips(id,key,cast){$(id).addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;st[key]=cast(b.dataset.v);
+  for(const c of $(id).children)c.setAttribute('aria-pressed',c===b);schedule()})}
+chips('noiseChips','noise',String);chips('winChips','win',Number);
+$('snr').addEventListener('input',e=>{st.snr=+e.target.value;schedule()});
+let pend=0;function schedule(){if(pend)return;pend=requestAnimationFrame(()=>{pend=0;run()})}
+$('frame').addEventListener('input',e=>{frameIdx=+e.target.value;drawFrame()});
+let timer=null;$('scan').addEventListener('click',e=>{if(timer){clearInterval(timer);timer=null;e.target.textContent='Scan';return}
+  e.target.textContent='Stop';timer=setInterval(()=>{frameIdx=(frameIdx+3)%D.nf;$('frame').value=frameIdx;drawFrame()},60)});
+let ac,src;document.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.play;if(!k||!D)return;
+  ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(src){try{src.stop()}catch(_){}}
+  const a=D[k],pk=Math.max(...a.map(Math.abs))||1,buf=ac.createBuffer(1,N,SR),ch=buf.getChannelData(0);for(let i=0;i<N;i++)ch[i]=a[i]/pk*.8;
+  src=ac.createBufferSource();src.buffer=buf;src.connect(ac.destination);src.start()});
+run();
+</script>

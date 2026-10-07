@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.keras
+*.wav
+*.flac
+data/
+.DS_Store
